@@ -327,6 +327,42 @@
             color: #856404;
             line-height: 1.6;
         }
+
+        .ar-link-box {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+
+        .ar-link-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .ar-link {
+            color: #333;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 <body>
@@ -397,27 +433,32 @@
                 <div class="result-title">Your AR CV is Ready!</div>
                 <div class="result-text">
                     Your CV has been transformed into an AR experience.<br>
-                    Download the files below and share with potential employers!
+                    Share the link below with employers!
                 </div>
+
+                <div class="ar-link-box">
+                    <div class="ar-link-label">📱 AR Viewer Link (Open on phone):</div>
+                    <div class="ar-link" id="arLink"></div>
+                    <button class="copy-btn" onclick="copyARLink()">Copy Link</button>
+                </div>
+
                 <div class="download-links">
-                    <a href="#" class="download-btn download-primary" id="downloadCV">
-                        📥 Download AR-Enabled CV
-                    </a>
-                    <a href="#" class="download-btn download-secondary" id="downloadMarker">
+                    <a href="#" class="download-btn download-primary" id="downloadMarker" download="ar-marker.png">
                         🎯 Download AR Marker
                     </a>
-                    <a href="#" class="download-btn download-secondary" id="viewAR">
-                        📱 View AR Experience
+                    <a href="#" class="download-btn download-secondary" id="viewAR" target="_blank">
+                        📱 Test AR Now
                     </a>
                 </div>
+
                 <div class="instructions">
                     <div class="instructions-title">📋 How to Use:</div>
                     <div class="instructions-text">
-                        1. Send the AR-enabled CV to employers (via email/LinkedIn)<br>
-                        2. They open it on their computer screen<br>
-                        3. They visit the AR link on their phone<br>
-                        4. They point their phone camera at the CV on screen<br>
-                        5. Your 3D AR CV appears above the document! 🎉
+                        1. Download the AR marker below<br>
+                        2. Print it or display on another screen<br>
+                        3. Open the AR link on your phone<br>
+                        4. Point camera at the marker<br>
+                        5. Your 3D AR CV appears! 🎉
                     </div>
                 </div>
                 <button class="btn" onclick="location.reload()" style="margin-top: 30px;">
@@ -431,11 +472,10 @@
         let uploadedFile = null;
         let selectedStyle = 'monolith';
         let pdfData = null;
+        let cvId = null;
 
-        // PDF.js setup
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Upload area interactions
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
         const preview = document.getElementById('preview');
@@ -471,7 +511,6 @@
 
             uploadedFile = file;
             
-            // Read and render PDF
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const typedarray = new Uint8Array(e.target.result);
@@ -501,7 +540,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // AR Style selection
         document.querySelectorAll('.ar-style').forEach(style => {
             style.addEventListener('click', () => {
                 document.querySelectorAll('.ar-style').forEach(s => s.classList.remove('selected'));
@@ -510,64 +548,104 @@
             });
         });
 
-        // Generate AR CV
         document.getElementById('generateBtn').addEventListener('click', async () => {
             if (!uploadedFile) {
                 alert('Please upload a CV first');
                 return;
             }
 
-            // Show loading
             document.getElementById('step1').style.display = 'none';
             document.getElementById('step2').style.display = 'none';
             document.getElementById('loading').classList.add('active');
 
-            // Simulate processing
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Generate AR files (in real app, this would create actual files)
-            generateARFiles();
+            await generateARFiles();
 
-            // Show result
             document.getElementById('loading').classList.remove('active');
             document.getElementById('result').classList.add('active');
         });
 
-        function generateARFiles() {
-            const fileName = uploadedFile.name.replace('.pdf', '');
+        async function generateARFiles() {
+            // Generate unique ID for this CV
+            cvId = 'cv_' + Date.now();
             
-            // Create blob URLs for download
-            const cvBlob = new Blob([uploadedFile], { type: 'application/pdf' });
-            const cvUrl = URL.createObjectURL(cvBlob);
+            // Convert PDF to base64 and store in localStorage
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Data = e.target.result;
+                
+                try {
+                    localStorage.setItem(cvId, base64Data);
+                    console.log('CV stored in localStorage with ID:', cvId);
+                } catch (error) {
+                    console.error('Error storing CV:', error);
+                    alert('CV is too large to store. Please try a smaller file.');
+                }
+            };
+            reader.readAsDataURL(uploadedFile);
+
+            // Generate AR viewer URL
+            const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+            const arUrl = `${baseUrl}ar-viewer.html?cv=${cvId}&style=${selectedStyle}`;
             
-            // Create marker image (placeholder)
-            const markerCanvas = document.createElement('canvas');
-            markerCanvas.width = 512;
-            markerCanvas.height = 512;
-            const ctx = markerCanvas.getContext('2d');
+            document.getElementById('arLink').textContent = arUrl;
+            document.getElementById('viewAR').href = arUrl;
+
+            // Generate marker image
+            await generateMarker();
+        }
+
+        async function generateMarker() {
+            // Create Hiro marker pattern
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // White background
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, 512, 512);
+            
+            // Black border
             ctx.fillStyle = 'black';
-            ctx.fillRect(50, 50, 412, 412);
+            ctx.fillRect(0, 0, 512, 80);
+            ctx.fillRect(0, 432, 512, 80);
+            ctx.fillRect(0, 0, 80, 512);
+            ctx.fillRect(432, 0, 80, 512);
+            
+            // Inner pattern (simplified Hiro pattern)
+            ctx.fillRect(120, 120, 272, 50);
+            ctx.fillRect(200, 170, 112, 172);
             ctx.fillStyle = 'white';
-            ctx.font = '40px Arial';
+            ctx.fillRect(230, 200, 52, 52);
+            ctx.fillRect(230, 290, 52, 52);
+            
+            // Add text
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('AR MARKER', 256, 256);
-            ctx.fillText('Scan Me!', 256, 306);
+            ctx.fillText('SCAN WITH PHONE', 256, 400);
             
-            markerCanvas.toBlob((blob) => {
-                const markerUrl = URL.createObjectURL(blob);
-                document.getElementById('downloadMarker').href = markerUrl;
-                document.getElementById('downloadMarker').download = `${fileName}-marker.png`;
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                document.getElementById('downloadMarker').href = url;
             });
+        }
 
-            document.getElementById('downloadCV').href = cvUrl;
-            document.getElementById('downloadCV').download = `${fileName}-AR.pdf`;
-            
-            // Generate AR viewer URL (would be actual hosted link)
-            const arUrl = `ar-viewer.html?cv=${fileName}&style=${selectedStyle}`;
-            document.getElementById('viewAR').href = arUrl;
-            document.getElementById('viewAR').target = '_blank';
+        function copyARLink() {
+            const link = document.getElementById('arLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy link. Please copy manually.');
+            });
         }
     </script>
 </body>
