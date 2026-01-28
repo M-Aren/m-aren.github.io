@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR CV Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .step {
+            margin-bottom: 40px;
+        }
+
+        .step-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: 700;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-area.dragging {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .ar-styles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .ar-style {
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            background: white;
+        }
+
+        .ar-style:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .ar-style.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .ar-style-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .ar-style-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .ar-style-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .preview {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+
+        .preview.active {
+            display: block;
+        }
+
+        .preview-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .pdf-preview {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .result {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .result.active {
+            display: block;
+        }
+
+        .success-icon {
+            font-size: 5em;
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .result-title {
+            font-size: 2em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .result-text {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .download-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .download-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .download-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 10px;
+        }
+
+        .instructions-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .instructions-text {
+            color: #856404;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AR CV Generator</h1>
+            <p>Transform your CV into an immersive AR experience</p>
+        </div>
+
+        <div class="content">
+            <!-- Step 1: Upload -->
+            <div class="step" id="step1">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Upload Your CV
+                </div>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drag & drop your CV here</div>
+                    <div class="upload-subtext">or click to browse (PDF format)</div>
+                    <input type="file" id="fileInput" accept=".pdf">
+                </div>
+                <div class="preview" id="preview">
+                    <div class="preview-title">✓ CV Uploaded Successfully</div>
+                    <div class="pdf-preview">
+                        <canvas id="pdfCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Choose Style -->
+            <div class="step" id="step2" style="display: none;">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    Choose AR Visualization Style
+                </div>
+                <div class="ar-styles">
+                    <div class="ar-style selected" data-style="monolith">
+                        <div class="ar-style-icon">🗿</div>
+                        <div class="ar-style-name">Monolith</div>
+                        <div class="ar-style-desc">Giant 3D vertical CV you can walk around</div>
+                    </div>
+                    <div class="ar-style" data-style="floating">
+                        <div class="ar-style-icon">📑</div>
+                        <div class="ar-style-name">Floating Pages</div>
+                        <div class="ar-style-desc">CV pages float in a circle around you</div>
+                    </div>
+                    <div class="ar-style" data-style="cube">
+                        <div class="ar-style-icon">🎲</div>
+                        <div class="ar-style-name">Interactive Cube</div>
+                        <div class="ar-style-desc">CV on faces of a rotating cube</div>
+                    </div>
+                </div>
+                <button class="btn" id="generateBtn">Generate AR CV</button>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div style="font-size: 1.2em; color: #667eea; font-weight: 600;">
+                    Creating your AR experience...
+                </div>
+            </div>
+
+            <!-- Result -->
+            <div class="result" id="result">
+                <div class="success-icon">✨</div>
+                <div class="result-title">Your AR CV is Ready!</div>
+                <div class="result-text">
+                    Your CV has been transformed into an AR experience.<br>
+                    Download the files below and share with potential employers!
+                </div>
+                <div class="download-links">
+                    <a href="#" class="download-btn download-primary" id="downloadCV">
+                        📥 Download AR-Enabled CV
+                    </a>
+                    <a href="#" class="download-btn download-secondary" id="downloadMarker">
+                        🎯 Download AR Marker
+                    </a>
+                    <a href="#" class="download-btn download-secondary" id="viewAR">
+                        📱 View AR Experience
+                    </a>
+                </div>
+                <div class="instructions">
+                    <div class="instructions-title">📋 How to Use:</div>
+                    <div class="instructions-text">
+                        1. Send the AR-enabled CV to employers (via email/LinkedIn)<br>
+                        2. They open it on their computer screen<br>
+                        3. They visit the AR link on their phone<br>
+                        4. They point their phone camera at the CV on screen<br>
+                        5. Your 3D AR CV appears above the document! 🎉
+                    </div>
+                </div>
+                <button class="btn" onclick="location.reload()" style="margin-top: 30px;">
+                    Create Another AR CV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let selectedStyle = 'monolith';
+        let pdfData = null;
+
+        // PDF.js setup
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Upload area interactions
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const pdfCanvas = document.getElementById('pdfCanvas');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        async function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            uploadedFile = file;
+            
+            // Read and render PDF
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const typedarray = new Uint8Array(e.target.result);
+                
+                try {
+                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                    pdfData = pdf;
+                    const page = await pdf.getPage(1);
+                    
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const context = pdfCanvas.getContext('2d');
+                    pdfCanvas.height = viewport.height;
+                    pdfCanvas.width = viewport.width;
+                    
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+                    
+                    preview.classList.add('active');
+                    document.getElementById('step2').style.display = 'block';
+                } catch (error) {
+                    console.error('Error rendering PDF:', error);
+                    alert('Error loading PDF. Please try another file.');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // AR Style selection
+        document.querySelectorAll('.ar-style').forEach(style => {
+            style.addEventListener('click', () => {
+                document.querySelectorAll('.ar-style').forEach(s => s.classList.remove('selected'));
+                style.classList.add('selected');
+                selectedStyle = style.dataset.style;
+            });
+        });
+
+        // Generate AR CV
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            if (!uploadedFile) {
+                alert('Please upload a CV first');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('loading').classList.add('active');
+
+            // Simulate processing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Generate AR files (in real app, this would create actual files)
+            generateARFiles();
+
+            // Show result
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('result').classList.add('active');
+        });
+
+        function generateARFiles() {
+            const fileName = uploadedFile.name.replace('.pdf', '');
+            
+            // Create blob URLs for download
+            const cvBlob = new Blob([uploadedFile], { type: 'application/pdf' });
+            const cvUrl = URL.createObjectURL(cvBlob);
+            
+            // Create marker image (placeholder)
+            const markerCanvas = document.createElement('canvas');
+            markerCanvas.width = 512;
+            markerCanvas.height = 512;
+            const ctx = markerCanvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 512, 512);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(50, 50, 412, 412);
+            ctx.fillStyle = 'white';
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('AR MARKER', 256, 256);
+            ctx.fillText('Scan Me!', 256, 306);
+            
+            markerCanvas.toBlob((blob) => {
+                const markerUrl = URL.createObjectURL(blob);
+                document.getElementById('downloadMarker').href = markerUrl;
+                document.getElementById('downloadMarker').download = `${fileName}-marker.png`;
+            });
+
+            document.getElementById('downloadCV').href = cvUrl;
+            document.getElementById('downloadCV').download = `${fileName}-AR.pdf`;
+            
+            // Generate AR viewer URL (would be actual hosted link)
+            const arUrl = `ar-viewer.html?cv=${fileName}&style=${selectedStyle}`;
+            document.getElementById('viewAR').href = arUrl;
+            document.getElementById('viewAR').target = '_blank';
+        }
+    </script>
+</body>
+</html>
