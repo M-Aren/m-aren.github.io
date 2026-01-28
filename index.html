@@ -363,6 +363,27 @@
         .copy-btn:hover {
             background: #5568d3;
         }
+
+        .marker-preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .marker-preview img {
+            max-width: 300px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .marker-note {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #1565C0;
+        }
     </style>
 </head>
 <body>
@@ -442,9 +463,21 @@
                     <button class="copy-btn" onclick="copyARLink()">Copy Link</button>
                 </div>
 
+                <div class="marker-note">
+                    <strong>⚠️ Important:</strong> You must use the official Hiro AR marker for this to work. Download it below.
+                </div>
+
+                <div class="marker-preview">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #667eea;">Official AR Marker (Hiro):</div>
+                    <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="Hiro Marker">
+                </div>
+
                 <div class="download-links">
-                    <a href="#" class="download-btn download-primary" id="downloadMarker" download="ar-marker.png">
-                        🎯 Download AR Marker
+                    <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" 
+                       class="download-btn download-primary" 
+                       download="hiro-marker.png"
+                       target="_blank">
+                        🎯 Download Hiro Marker
                     </a>
                     <a href="#" class="download-btn download-secondary" id="viewAR" target="_blank">
                         📱 Test AR Now
@@ -454,11 +487,13 @@
                 <div class="instructions">
                     <div class="instructions-title">📋 How to Use:</div>
                     <div class="instructions-text">
-                        1. Download the AR marker below<br>
-                        2. Print it or display on another screen<br>
-                        3. Open the AR link on your phone<br>
-                        4. Point camera at the marker<br>
-                        5. Your 3D AR CV appears! 🎉
+                        1. Download the Hiro marker above (the black square with pattern)<br>
+                        2. Print it (at least 10cm x 10cm) OR display it on another screen<br>
+                        3. Open the AR link on your phone's browser<br>
+                        4. Click "Start AR" and allow camera access<br>
+                        5. Point your phone camera at the Hiro marker<br>
+                        6. Your 3D AR CV appears! 🎉<br><br>
+                        <strong>Note:</strong> Make sure good lighting and hold marker flat for best detection.
                     </div>
                 </div>
                 <button class="btn" onclick="location.reload()" style="margin-top: 30px;">
@@ -591,46 +626,6 @@
             
             document.getElementById('arLink').textContent = arUrl;
             document.getElementById('viewAR').href = arUrl;
-
-            // Generate marker image
-            await generateMarker();
-        }
-
-        async function generateMarker() {
-            // Create Hiro marker pattern
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            
-            // White background
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, 512, 512);
-            
-            // Black border
-            ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, 512, 80);
-            ctx.fillRect(0, 432, 512, 80);
-            ctx.fillRect(0, 0, 80, 512);
-            ctx.fillRect(432, 0, 80, 512);
-            
-            // Inner pattern (simplified Hiro pattern)
-            ctx.fillRect(120, 120, 272, 50);
-            ctx.fillRect(200, 170, 112, 172);
-            ctx.fillStyle = 'white';
-            ctx.fillRect(230, 200, 52, 52);
-            ctx.fillRect(230, 290, 52, 52);
-            
-            // Add text
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('SCAN WITH PHONE', 256, 400);
-            
-            canvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                document.getElementById('downloadMarker').href = url;
-            });
         }
 
         function copyARLink() {
